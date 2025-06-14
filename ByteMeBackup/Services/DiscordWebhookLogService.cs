@@ -1,4 +1,6 @@
+using System.Net.Http;
 using System.Net.Http.Json;
+using System.Threading.Tasks;
 using Spectre.Console;
 
 namespace ByteMeBackup.Services;
@@ -33,7 +35,7 @@ public class DiscordWebhookLogService
 
         if (!response.IsSuccessStatusCode)
         {
-            Console.WriteLine($"Failed to send log to Discord: {response.ReasonPhrase}");
+            AnsiConsole.Markup("[red]Discord webhook upload failed![/]\n");
         }
     }
 }
