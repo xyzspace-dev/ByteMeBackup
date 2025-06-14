@@ -1,0 +1,18 @@
+{
+  "DiscordWebhookUrl": "",
+  "RemoteServer": {
+    "IpAddress": "",
+    "Port": "",
+    "Username": "",
+    "Password": ""
+  },
+  "BackupConfigs": [
+    {
+      "BackupPath": "",
+      "BackupPrefix": "",
+      "BackupSchedule": "",
+      "BackupType": 1,
+      "MountedDrivePath": ""
+    }
+  ]
+}
