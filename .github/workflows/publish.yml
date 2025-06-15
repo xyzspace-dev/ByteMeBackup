@@ -1,7 +1,7 @@
 name: Build C# Backup Executables
 
 on:
-  push:
+  push: 
     tags:
       - 'v*'  # z. B. v1.0.0
 
