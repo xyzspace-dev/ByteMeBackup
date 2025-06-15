@@ -18,7 +18,7 @@ public class DiscordWebhookLogService
     public async Task SendLogAsync(string message)
     {
         var config = ConfigService.Get();
-        if (string.IsNullOrEmpty(config.DiscordWebhookUrl))
+        if (string.IsNullOrEmpty(config!.DiscordWebhookUrl))
         {
             AnsiConsole.Markup("[red]Discord webhook URL is not configured![/]\n");
             return;

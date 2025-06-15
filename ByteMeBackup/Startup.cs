@@ -1,4 +1,3 @@
-using System.Threading.Tasks;
 using ByteMeBackup.Configuration;
 using ByteMeBackup.Services;
 using Spectre.Console;
@@ -7,7 +6,6 @@ namespace ByteMeBackup;
 
 public class Startup
 {
-    private static ConfigService ConfigService;
     private static AppConfig? Config;
 
     public static async Task Main()
@@ -18,7 +16,7 @@ public class Startup
 
         AnsiConsole.Markup("[bold white]Starting ByteMeBackup...[/]\n");
 
-        if (Config.BackupConfigs.Length == 0)
+        if (Config!.BackupConfigs.Length == 0)
         {
             AnsiConsole.Markup("[red]No backup configurations found! Please check your config.json file.[/]\n");
             return;

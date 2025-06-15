@@ -1,5 +1,3 @@
-using System;
-using System.IO;
 using System.IO.Compression;
 using ByteMeBackup.Configuration;
 using ByteMeBackup.Services;
@@ -138,7 +136,7 @@ public class BackupTask
         }
     }
 
-    private async Task LogAsync(string message, string consoleMarkup = null)
+    private async Task LogAsync(string message, string consoleMarkup = null!)
     {
         if (!string.IsNullOrWhiteSpace(consoleMarkup))
             AnsiConsole.Markup(consoleMarkup + "\n");
