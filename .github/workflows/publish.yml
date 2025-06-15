@@ -15,8 +15,8 @@ jobs:
         include:
           - os: windows-latest
             rid: win-x64
-          - os: ubuntu-latest
-            rid: linux-x64
+         # - os: ubuntu-latest
+         #   rid: linux-x64
           - os: macos-latest
             rid: osx-x64
 
@@ -35,7 +35,7 @@ jobs:
       - name: Publish self-contained binary
         run: |
           dotnet publish -c Release -r ${{ matrix.rid }} \
-            -p:SelfContained true \
+            --self-contained true \
             -p:PublishReadyToRun=true \
             -p:PublishSingleFile=true \
             -o publish/${{ matrix.rid }}
