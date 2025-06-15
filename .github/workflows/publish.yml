@@ -35,7 +35,7 @@ jobs:
       - name: Publish self-contained binary
         run: |
           dotnet publish -c Release -r ${{ matrix.rid }} \
-            --self-contained true \
+            -p:SelfContained true \
             -p:PublishReadyToRun=true \
             -p:PublishSingleFile=true \
             -o publish/${{ matrix.rid }}
