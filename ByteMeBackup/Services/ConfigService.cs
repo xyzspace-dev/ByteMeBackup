@@ -9,11 +9,12 @@ namespace ByteMeBackup.Services;
 
 public class ConfigService
 {
-    private AppConfig Config { get; set; }
-
-    public ConfigService()
+    public ConfigService(AppConfig? config)
     {
+        Config = config;
     }
+
+    private AppConfig? Config { get; set; }
 
     public async Task CreateConfig()
     {
@@ -50,22 +51,15 @@ public class ConfigService
                 WriteIndented = true,
                 PropertyNameCaseInsensitive = true
             });
-            await File.WriteAllTextAsync(configFile, defaultConfig);
+            await File.WriteAllTextAsync("config.json", defaultConfig);
             AnsiConsole.Markup("[green]Default configuration file created![/]\n");
         }
 
         AnsiConsole.Markup("[bold white]Loading configuration...[/]\n");
-        var configContent = await File.ReadAllTextAsync(configFile);
-
-        Config = JsonSerializer.Deserialize<AppConfig>(configContent, new JsonSerializerOptions
-        {
-            PropertyNameCaseInsensitive = true
-        }) ?? new AppConfig();
+        var configContent = await File.ReadAllTextAsync("config.json");
+        Config = JsonSerializer.Deserialize<AppConfig>(configContent);
         AnsiConsole.Markup("[green]Configuration loaded successfully![/]\n");
     }
 
-    public AppConfig Get()
-    {
-        return Config;
-    }
+    public AppConfig? Get() => Config;
 }

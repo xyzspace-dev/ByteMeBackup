@@ -2,7 +2,9 @@ using System;
 using System.IO;
 using System.IO.Compression;
 using ByteMeBackup.Configuration;
+using ByteMeBackup.Services;
 using Renci.SshNet;
+using Spectre.Console;
 
 namespace ByteMeBackup.Core;
 
@@ -10,67 +12,144 @@ public class BackupTask
 {
     private readonly BackupConfig BackupConfig;
     private readonly RemoteServerConfig RemoteServerConfig;
+    private readonly DiscordWebhookLogService LogService;
 
-    public BackupTask(BackupConfig backupConfig, RemoteServerConfig remoteServerConfig)
+    public BackupTask(BackupConfig backupConfig, RemoteServerConfig remoteServerConfig,
+        DiscordWebhookLogService logService)
     {
         BackupConfig = backupConfig;
         RemoteServerConfig = remoteServerConfig;
+        LogService = logService;
     }
 
-    public void Run()
+    public async Task Run()
     {
         try
         {
-            Console.WriteLine($"[BackupTask] Starting backup for: {BackupConfig.BackupPath}");
+            await LogAsync("Starting backup task...", "[bold gray]Starting backup task...[/]");
 
             var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
             var zipFileName = $"{BackupConfig.BackupPrefix}{timestamp}.zip";
             var tempZipPath = Path.Combine(Path.GetTempPath(), zipFileName);
 
-            // Create the backup zip file
             ZipFile.CreateFromDirectory(BackupConfig.BackupPath, tempZipPath);
-            Console.WriteLine($"[BackupTask] Backup created: {tempZipPath}");
+
+            await LogAsync($"""
+                            **Backup created successfully!** 
+                            > Directory: {BackupConfig.BackupPath}
+                            > Zip File: {zipFileName}
+                            > Temp Zip Path: {tempZipPath}
+                            > Timestamp: {timestamp}
+                            """,
+                $"[green]Backup created: {tempZipPath}[/]"
+            );
 
             switch (BackupConfig.BackupType)
             {
                 case BackupType.MountedDrive:
-                    HandleMountedDriveBackup(tempZipPath, zipFileName);
+                    await HandleMountedDriveBackup(tempZipPath, zipFileName);
                     break;
 
                 case BackupType.ToServer:
-                    HandleSftpBackup(tempZipPath, zipFileName);
+                    await HandleSftpBackup(tempZipPath, zipFileName);
                     break;
 
                 default:
-                    Console.WriteLine($"[BackupTask] Unknown backup type: {BackupConfig.BackupType}");
-                    break;
+                    var ex = new NotSupportedException($"Backup type {BackupConfig.BackupType} is not supported.");
+                    AnsiConsole.WriteException(ex);
+                    await LogService.SendLogAsync($"❌ **Unsupported backup type:** {BackupConfig.BackupType}");
+                    return;
             }
 
-            File.Delete(tempZipPath);
+            try
+            {
+                File.Delete(tempZipPath);
+                await LogAsync(
+                    "-# Temporary zip file deleted successfully!",
+                    $"[grey]Deleted temporary file: {tempZipPath}[/]"
+                );
+            }
+            catch (Exception e)
+            {
+                await HandleErrorAsync(e, "deleting temporary zip file");
+            }
+
+            await LogAsync("✅ **Backup task finished successfully.**", "[bold green]Backup task completed.[/]");
         }
-        catch (Exception ex)
+        catch (Exception e)
         {
-            Console.WriteLine($"[BackupTask] Error: {ex.Message}");
+            await HandleErrorAsync(e, "running the backup task");
         }
     }
 
-    private void HandleMountedDriveBackup(string sourceZipPath, string fileName)
+    private async Task HandleMountedDriveBackup(string sourceZipPath, string fileName)
     {
-        var targetPath = Path.Combine(BackupConfig.MountedDrivePath, fileName);
-        Directory.CreateDirectory(BackupConfig.MountedDrivePath);
-        File.Copy(sourceZipPath, targetPath, overwrite: true);
-        Console.WriteLine($"[BackupTask] Backup saved to mounted drive: {targetPath}");
+        try
+        {
+            var targetPath = Path.Combine(BackupConfig.MountedDrivePath, fileName);
+
+            if (!Directory.Exists(BackupConfig.MountedDrivePath))
+            {
+                Directory.CreateDirectory(BackupConfig.MountedDrivePath);
+                AnsiConsole.Markup("[bold yellow]Mounted drive directory created[/]\n");
+            }
+
+            File.Copy(sourceZipPath, targetPath, overwrite: true);
+
+            await LogAsync($"""
+                            **Backup copied to mounted drive successfully!**
+                            > File: {fileName}
+                            > Mounted Drive Path: {BackupConfig.MountedDrivePath}
+                            """,
+                "[green]Backup copied to mounted drive successfully![/]\n" +
+                $"[bold white]File:[/] [blue]{fileName}[/]"
+            );
+        }
+        catch (Exception e)
+        {
+            await HandleErrorAsync(e, "copying backup to mounted drive");
+        }
     }
 
-    private void HandleSftpBackup(string sourceZipPath, string fileName)
+    private async Task HandleSftpBackup(string sourceZipPath, string fileName)
     {
-        using var client =
-            new SftpClient(RemoteServerConfig.IpAddress, int.Parse(RemoteServerConfig.Port),
-                RemoteServerConfig.Username, RemoteServerConfig.Password);
-        client.Connect();
-        using var fileStream = File.OpenRead(sourceZipPath);
-        client.UploadFile(fileStream, fileName);
-        client.Disconnect();
-        Console.WriteLine($"[BackupTask] Backup uploaded to server as: {fileName}");
+        try
+        {
+            using var client =
+                new SftpClient(RemoteServerConfig.IpAddress, int.Parse(RemoteServerConfig.Port),
+                    RemoteServerConfig.Username, RemoteServerConfig.Password);
+            client.Connect();
+            await using var fileStream = File.OpenRead(sourceZipPath);
+            client.UploadFile(fileStream, fileName);
+            client.Disconnect();
+
+            await LogAsync($"""
+                            **Backup uploaded to remote server successfully!**
+                            > File: {fileName}
+                            > Server: {RemoteServerConfig.IpAddress}:{RemoteServerConfig.Port}
+                            """,
+                "[green]Backup uploaded to remote server successfully![/]\n" +
+                $"[bold white]File:[/] [blue]{fileName}[/]"
+            );
+        }
+        catch (Exception e)
+        {
+            await HandleErrorAsync(e, "uploading backup via SFTP");
+        }
+    }
+
+    private async Task LogAsync(string message, string consoleMarkup = null)
+    {
+        if (!string.IsNullOrWhiteSpace(consoleMarkup))
+            AnsiConsole.Markup(consoleMarkup + "\n");
+
+        await LogService.SendLogAsync(message);
+    }
+
+    private async Task HandleErrorAsync(Exception e, string context)
+    {
+        AnsiConsole.Markup($"[red]Error during {context}[/]\n");
+        AnsiConsole.WriteException(e);
+        await LogService.SendLogAsync($"❌ **Error during {context}:** ``{e.Message}``");
     }
 }

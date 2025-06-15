@@ -8,15 +8,15 @@ namespace ByteMeBackup;
 public class Startup
 {
     private static ConfigService ConfigService;
-    private static AppConfig Config;
+    private static AppConfig? Config;
 
     public static async Task Main()
     {
-        var configService = new ConfigService();
+        var configService = new ConfigService(new AppConfig());
         await configService.CreateConfig();
-        Config = ConfigService.Get();
+        Config = configService.Get();
 
-        AnsiConsole.Markup("[bold white]Starting ByteMeBackup Scheduler...[/]\n");
+        AnsiConsole.Markup("[bold white]Starting ByteMeBackup...[/]\n");
 
         if (Config.BackupConfigs.Length == 0)
         {
@@ -26,11 +26,12 @@ public class Startup
 
         foreach (var backupConfig in Config.BackupConfigs)
         {
-            var backupTask = new Core.BackupTask(backupConfig, Config.RemoteServer);
+            var backupTask = new Core.BackupTask(backupConfig, Config.RemoteServer,
+                new DiscordWebhookLogService(configService));
             AnsiConsole.Markup($"[bold white]Running backup for: {backupConfig.BackupPath}[/]\n");
-            backupTask.Run();
+            await backupTask.Run();
         }
 
-        AnsiConsole.Markup("[green]All backups completed![/]\n");
+        AnsiConsole.Markup("[yellow bold]All backups completed![/]\n");
     }
 }
