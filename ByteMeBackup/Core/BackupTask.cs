@@ -29,12 +29,12 @@ public class BackupTask
 
             var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
             var zipFileName = $"{BackupConfig.BackupPrefix}{timestamp}.zip";
-            FileHelper.CopyDirectory(BackupConfig.BackupPath, Path.GetTempPath() + zipFileName, false);
-
-
+            var tempBackupPath = Path.GetTempPath() + "/backup/" + BackupConfig.BackupPrefix + timestamp;
             var tempZipPath = Path.Combine(Path.GetTempPath(), zipFileName);
-            var tempBackupPath = Path.GetTempPath() + zipFileName;
-            
+
+
+            FileHelper.CopyDirectory(BackupConfig.BackupPath, Path.GetTempPath() + zipFileName,
+                true);
             ZipFile.CreateFromDirectory(tempBackupPath, tempZipPath);
 
             await LogAsync($"""
@@ -70,7 +70,7 @@ public class BackupTask
                 File.Delete(tempBackupPath);
                 await LogAsync(
                     "-# Temporary zip file deleted successfully!",
-                    $"[grey]Deleted temporary file: {tempZipPath}[/]"
+                    $"[grey]Deleted temporary file: {tempZipPath}[/]\n[grey]Deleted temporary file: {tempBackupPath}[/]"
                 );
             }
             catch (Exception e)

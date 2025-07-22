@@ -11,7 +11,7 @@ public class BackupConfig
 {
     public string BackupPath { get; set; } = string.Empty;
     public string BackupPrefix { get; set; } = string.Empty;
-    
+
     // Soon to be implemented
     // public ??? BackupSchedule { get; set; } = ???;
     public BackupType BackupType { get; set; } = BackupType.MountedDrive;

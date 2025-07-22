@@ -23,7 +23,11 @@ public class FileHelper
         foreach (var file in dir.GetFiles())
         {
             var targetFilePath = Path.Combine(destinationDir, file.Name);
-            file.CopyTo(targetFilePath);
+            using var sourceFileStream = new FileStream(file.FullName, FileMode.Open, FileAccess.ReadWrite);
+            using var targetFileStream = new FileStream(targetFilePath, FileMode.CreateNew, FileAccess.ReadWrite);
+            sourceFileStream.CopyTo(targetFileStream);
+            sourceFileStream.Close();
+            targetFileStream.Close();
         }
 
         // If recursive and copying subdirectories, recursively call this method
