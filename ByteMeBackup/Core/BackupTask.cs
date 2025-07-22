@@ -1,5 +1,6 @@
 using System.IO.Compression;
 using ByteMeBackup.Configuration;
+using ByteMeBackup.Helper;
 using ByteMeBackup.Services;
 using Renci.SshNet;
 using Spectre.Console;
@@ -11,6 +12,7 @@ public class BackupTask
     private readonly BackupConfig BackupConfig;
     private readonly RemoteServerConfig RemoteServerConfig;
     private readonly DiscordWebhookLogService LogService;
+    private readonly FileHelper FileHelper;
 
     public BackupTask(BackupConfig backupConfig, RemoteServerConfig remoteServerConfig,
         DiscordWebhookLogService logService)
@@ -28,9 +30,13 @@ public class BackupTask
 
             var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
             var zipFileName = $"{BackupConfig.BackupPrefix}{timestamp}.zip";
-            var tempZipPath = Path.Combine(Path.GetTempPath(), zipFileName);
+            await FileHelper.CopyDirectory(BackupConfig.BackupPath, Path.GetTempPath() + zipFileName, false);
 
-            ZipFile.CreateFromDirectory(BackupConfig.BackupPath, tempZipPath);
+
+            var tempZipPath = Path.Combine(Path.GetTempPath(), zipFileName);
+            var tempBackupPath = Path.GetTempPath() + zipFileName;
+            
+            ZipFile.CreateFromDirectory(tempBackupPath, tempZipPath);
 
             await LogAsync($"""
                             **Backup created successfully!** 
@@ -62,6 +68,7 @@ public class BackupTask
             try
             {
                 File.Delete(tempZipPath);
+                File.Delete(tempBackupPath);
                 await LogAsync(
                     "-# Temporary zip file deleted successfully!",
                     $"[grey]Deleted temporary file: {tempZipPath}[/]"
