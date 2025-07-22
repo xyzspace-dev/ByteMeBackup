@@ -4,7 +4,7 @@ using System.IO;
 
 public class FileHelper
 {
-    public async Task CopyDirectory(string sourceDir, string destinationDir, bool recursive)
+    public static void CopyDirectory(string sourceDir, string destinationDir, bool recursive)
     {
         // Get information about the source directory
         var dir = new DirectoryInfo(sourceDir);

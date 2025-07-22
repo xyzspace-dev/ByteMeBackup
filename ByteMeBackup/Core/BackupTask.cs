@@ -12,7 +12,6 @@ public class BackupTask
     private readonly BackupConfig BackupConfig;
     private readonly RemoteServerConfig RemoteServerConfig;
     private readonly DiscordWebhookLogService LogService;
-    private readonly FileHelper FileHelper;
 
     public BackupTask(BackupConfig backupConfig, RemoteServerConfig remoteServerConfig,
         DiscordWebhookLogService logService)
@@ -30,7 +29,7 @@ public class BackupTask
 
             var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
             var zipFileName = $"{BackupConfig.BackupPrefix}{timestamp}.zip";
-            await FileHelper.CopyDirectory(BackupConfig.BackupPath, Path.GetTempPath() + zipFileName, false);
+            FileHelper.CopyDirectory(BackupConfig.BackupPath, Path.GetTempPath() + zipFileName, false);
 
 
             var tempZipPath = Path.Combine(Path.GetTempPath(), zipFileName);
