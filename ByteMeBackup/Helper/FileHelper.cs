@@ -1,10 +1,12 @@
+using Spectre.Console;
+
 namespace ByteMeBackup.Helper;
 
 using System.IO;
 
 public class FileHelper
 {
-    public static void CopyDirectory(string sourceDir, string destinationDir, bool recursive)
+    public static void CopyDirectory(string sourceDir, string destinationDir)
     {
         // Get information about the source directory
         var dir = new DirectoryInfo(sourceDir);
@@ -13,30 +15,40 @@ public class FileHelper
         if (!dir.Exists)
             throw new DirectoryNotFoundException($"Source directory not found: {dir.FullName}");
 
-        // Cache directories before we start copying
-        var dirs = dir.GetDirectories();
-
         // Create the destination directory
         Directory.CreateDirectory(destinationDir);
 
         // Get the files in the source directory and copy to the destination directory
-        foreach (var file in dir.GetFiles())
-        {
-            var targetFilePath = Path.Combine(destinationDir, file.Name);
-            using var sourceFileStream = new FileStream(file.FullName, FileMode.Open, FileAccess.ReadWrite);
-            using var targetFileStream = new FileStream(targetFilePath, FileMode.CreateNew, FileAccess.ReadWrite);
-            sourceFileStream.CopyTo(targetFileStream);
-            sourceFileStream.Close();
-            targetFileStream.Close();
-        }
+        AnsiConsole.Status()
+            .Start("Start process", ctx =>
+            {
+                // Update the status and spinner
+                ctx.Status("Copy files...");
+                ctx.Spinner(Spinner.Known.Dots2);
+                ctx.SpinnerStyle(Style.Parse("gray"));
 
-        // If recursive and copying subdirectories, recursively call this method
-        if (!recursive) return;
-        foreach (var subDir in dirs)
-        {
-            string newDestinationDir;
-            newDestinationDir = Path.Combine(destinationDir, subDir.Name);
-            CopyDirectory(subDir.FullName, newDestinationDir, true);
-        }
+                foreach (var file in dir.GetFiles())
+                {
+                    try
+                    {
+                        var targetFilePath = Path.Combine(destinationDir, file.Name);
+                        using var sourceFileStream = new FileStream(file.FullName, FileMode.Open,
+                            FileAccess.ReadWrite,
+                            FileShare.ReadWrite);
+                        using var targetFileStream =
+                            new FileStream(targetFilePath, FileMode.CreateNew, FileAccess.ReadWrite);
+                        sourceFileStream.CopyTo(targetFileStream);
+                        
+                        ctx.Status($"Copy file {file.Name} to {targetFilePath}");
+                        
+                        sourceFileStream.Close();
+                        targetFileStream.Close();
+                    }
+                    catch (IOException e)
+                    {
+                        AnsiConsole.Markup($"[gray]Skip file because of IOException by {file.FullName}[/]");
+                    }
+                }
+            });
     }
 }

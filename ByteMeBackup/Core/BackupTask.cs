@@ -29,12 +29,11 @@ public class BackupTask
 
             var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
             var zipFileName = $"{BackupConfig.BackupPrefix}{timestamp}.zip";
-            var tempBackupPath = Path.GetTempPath() + "/backup/" + BackupConfig.BackupPrefix + timestamp;
+            var tempBackupPath = Path.GetTempPath() + BackupConfig.BackupPrefix + timestamp;
             var tempZipPath = Path.Combine(Path.GetTempPath(), zipFileName);
 
 
-            FileHelper.CopyDirectory(BackupConfig.BackupPath, Path.GetTempPath() + zipFileName,
-                true);
+            FileHelper.CopyDirectory(BackupConfig.BackupPath, tempBackupPath);
             ZipFile.CreateFromDirectory(tempBackupPath, tempZipPath);
 
             await LogAsync($"""
@@ -67,7 +66,7 @@ public class BackupTask
             try
             {
                 File.Delete(tempZipPath);
-                File.Delete(tempBackupPath);
+                Directory.Delete(tempBackupPath, true);
                 await LogAsync(
                     "-# Temporary zip file deleted successfully!",
                     $"[grey]Deleted temporary file: {tempZipPath}[/]\n[grey]Deleted temporary file: {tempBackupPath}[/]"
