@@ -24,18 +24,25 @@ public class FileHelper
         // Get the files in the source directory and copy to the destination directory
         foreach (FileInfo file in dir.GetFiles())
         {
-            var targetFilePath = Path.Combine(destinationDir, file.Name);
-            using var sourceFileStream = new FileStream(file.FullName, FileMode.Open,
-                FileAccess.ReadWrite,
-                FileShare.ReadWrite);
-            using var targetFileStream =
-                new FileStream(targetFilePath, FileMode.CreateNew, FileAccess.ReadWrite);
-            sourceFileStream.CopyTo(targetFileStream);
+            try
+            {
+                var targetFilePath = Path.Combine(destinationDir, file.Name);
+                using var sourceFileStream = new FileStream(file.FullName, FileMode.Open,
+                    FileAccess.ReadWrite,
+                    FileShare.ReadWrite);
+                using var targetFileStream =
+                    new FileStream(targetFilePath, FileMode.CreateNew, FileAccess.ReadWrite);
+                sourceFileStream.CopyTo(targetFileStream);
 
-            AnsiConsole.Markup($"[gray]Copy file {file.Name} to {targetFilePath}[/]");
+                AnsiConsole.Markup($"\n[gray]Copy file {file.Name} to {targetFilePath}[/]\n");
 
-            sourceFileStream.Close();
-            targetFileStream.Close();
+                sourceFileStream.Close();
+                targetFileStream.Close();
+            }
+            catch (Exception e)
+            {
+                AnsiConsole.WriteException(e);
+            }
         }
 
         // If recursive and copying subdirectories, recursively call this method
