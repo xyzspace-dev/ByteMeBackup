@@ -6,7 +6,7 @@ using System.IO;
 
 public class FileHelper
 {
-    public static void CopyDirectory(string sourceDir, string destinationDir)
+    public static void CopyDirectoryRecursive(string sourceDir, string destinationDir, bool recursive)
     {
         // Get information about the source directory
         var dir = new DirectoryInfo(sourceDir);
@@ -15,40 +15,37 @@ public class FileHelper
         if (!dir.Exists)
             throw new DirectoryNotFoundException($"Source directory not found: {dir.FullName}");
 
+        // Cache directories before we start copying
+        DirectoryInfo[] dirs = dir.GetDirectories();
+
         // Create the destination directory
         Directory.CreateDirectory(destinationDir);
 
         // Get the files in the source directory and copy to the destination directory
-        AnsiConsole.Status()
-            .Start("Start process", ctx =>
-            {
-                // Update the status and spinner
-                ctx.Status("Copy files...");
-                ctx.Spinner(Spinner.Known.Dots2);
-                ctx.SpinnerStyle(Style.Parse("gray"));
+        foreach (FileInfo file in dir.GetFiles())
+        {
+            var targetFilePath = Path.Combine(destinationDir, file.Name);
+            using var sourceFileStream = new FileStream(file.FullName, FileMode.Open,
+                FileAccess.ReadWrite,
+                FileShare.ReadWrite);
+            using var targetFileStream =
+                new FileStream(targetFilePath, FileMode.CreateNew, FileAccess.ReadWrite);
+            sourceFileStream.CopyTo(targetFileStream);
 
-                foreach (var file in dir.GetFiles())
-                {
-                    try
-                    {
-                        var targetFilePath = Path.Combine(destinationDir, file.Name);
-                        using var sourceFileStream = new FileStream(file.FullName, FileMode.Open,
-                            FileAccess.ReadWrite,
-                            FileShare.ReadWrite);
-                        using var targetFileStream =
-                            new FileStream(targetFilePath, FileMode.CreateNew, FileAccess.ReadWrite);
-                        sourceFileStream.CopyTo(targetFileStream);
-                        
-                        ctx.Status($"Copy file {file.Name} to {targetFilePath}");
-                        
-                        sourceFileStream.Close();
-                        targetFileStream.Close();
-                    }
-                    catch (IOException e)
-                    {
-                        AnsiConsole.Markup($"[gray]Skip file because of IOException by {file.FullName}[/]");
-                    }
-                }
-            });
+            AnsiConsole.Markup($"[gray]Copy file {file.Name} to {targetFilePath}[/]");
+
+            sourceFileStream.Close();
+            targetFileStream.Close();
+        }
+
+        // If recursive and copying subdirectories, recursively call this method
+        if (recursive)
+        {
+            foreach (DirectoryInfo subDir in dirs)
+            {
+                string newDestinationDir = Path.Combine(destinationDir, subDir.Name);
+                CopyDirectoryRecursive(subDir.FullName, newDestinationDir, true);
+            }
+        }
     }
 }

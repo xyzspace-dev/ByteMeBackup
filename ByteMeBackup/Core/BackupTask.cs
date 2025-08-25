@@ -33,7 +33,7 @@ public class BackupTask
             var tempZipPath = Path.Combine(Path.GetTempPath(), zipFileName);
 
 
-            FileHelper.CopyDirectory(BackupConfig.BackupPath, tempBackupPath);
+            FileHelper.CopyDirectoryRecursive(BackupConfig.BackupPath, tempBackupPath, true);
             ZipFile.CreateFromDirectory(tempBackupPath, tempZipPath);
 
             await LogAsync($"""
@@ -99,6 +99,8 @@ public class BackupTask
 
             File.Copy(sourceZipPath, targetPath, overwrite: true);
 
+            // home/test
+            // /home/backuo
             await LogAsync($"""
                             **Backup copied to mounted drive successfully!**
                             > File: {fileName}
